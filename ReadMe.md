@@ -4,6 +4,20 @@ A lightweight full-stack image tagging tool that allows users to upload images, 
 
 ---
 
+### ✅ Project Summary
+
+- I began by reviewing the assignment requirements and planning the architecture around a standard full-stack flow: a **React frontend** for file uploads, a **Python backend** for image processing, and a **SQLite database** for storing metadata and embeddings.
+
+- The first technical challenge was selecting an appropriate model and workflow to extract meaningful tags and embeddings from uploaded images. I researched relevant libraries and leveraged AI tools to assist in selecting and integrating **ResNet18** from PyTorch’s `torchvision.models`.
+
+- I started by implementing a backend module to tag and embed a **single image**, then extended it to process **entire folders** of uploaded images.
+
+- Once the backend was stable, I built a clean React frontend that allows users to upload multiple images, trigger server-side processing, and view results in a dynamic table with **image previews, tags, and errors**.
+
+- After validating the system end-to-end, I finalized and submitted the assignment.
+
+---
+
 ## 🔧 Technologies Used
 
 - **Frontend:** React (in root directory)
