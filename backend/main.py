@@ -1,18 +1,32 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os
 from uuid import uuid4
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import torch
 import torchvision.transforms as transforms
 import torchvision.models as models
 import sqlite3
 import json
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+
+
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_FOLDER), name="uploads")
+
 # Paths
-UPLOAD_FOLDER = "pics"
+UPLOAD_FOLDER = "uploads"
 DB_PATH = "image_metadata.db"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -43,20 +57,22 @@ transform = transforms.Compose([
     )
 ])
 
-# Init SQLite DB
-conn = sqlite3.connect(DB_PATH)
-c = conn.cursor()
-c.execute('''
-CREATE TABLE IF NOT EXISTS images (
-    id TEXT PRIMARY KEY,
-    filename TEXT,
-    tag TEXT,
-    metadata TEXT,
-    embedding TEXT
-)
-''')
-conn.commit()
-conn.close()
+# Ensure table exists on app startup
+@app.on_event("startup")
+def startup_event():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS images (
+        id TEXT PRIMARY KEY,
+        filename TEXT,
+        tag TEXT,
+        metadata TEXT,
+        embedding TEXT
+    )
+    ''')
+    conn.commit()
+    conn.close()
 
 # Helper to extract embedding vector
 def get_embedding(tensor):
@@ -64,6 +80,19 @@ def get_embedding(tensor):
     with torch.no_grad():
         embedding = embedding_layer(tensor).squeeze().tolist()
     return embedding
+
+from fastapi import UploadFile, File
+
+@app.post("/upload")
+async def upload_image(file: UploadFile = File(...)):
+    try:
+        # Save file to upload folder
+        file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
+        return {"filename": file.filename, "status": "uploaded"}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # Process all images in folder
 @app.get("/process-folder")
@@ -95,6 +124,8 @@ def process_folder():
                       (image_id, filename, label, json.dumps(metadata), json.dumps(embedding)))
             results.append({"filename": filename, "tag": label})
 
+        except UnidentifiedImageError:
+            results.append({"filename": filename, "error": "Unsupported image format (e.g., .avif)"})
         except Exception as e:
             results.append({"filename": filename, "error": str(e)})
 
@@ -104,4 +135,4 @@ def process_folder():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=6000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)
