@@ -7,7 +7,7 @@ A lightweight full-stack image tagging tool that allows users to upload images, 
 ## 🔧 Technologies Used
 
 - **Frontend:** React (in root directory)
-- **Backend:** FastAPI (in `backend/` folder)
+- **Backend:** Python, FastAPI (in `backend/` folder)
 - **ML Model:** ResNet18 (ImageNet, via PyTorch)
 - **Database:** SQLite for metadata and embedding storage
 
