@@ -132,3 +132,7 @@ npm install
 ## 📬 Submission
 
 This project was built as a take-home assessment for Assembli. All components are self-contained and run locally.
+
+### Note
+
+As required by assignment, **embeddings and metadata are stored in `image_metadata.db`** but not displayed in frontend interface.
